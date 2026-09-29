@@ -28,7 +28,7 @@ public class SchedulerRunner {
             Trigger trigger = TriggerBuilder.newTrigger().forJob(jobDetail).
                     withIdentity("triggerjobs")
                     .withSchedule(
-                            CronScheduleBuilder.dailyAtHourAndMinute(10,26)
+                            CronScheduleBuilder.dailyAtHourAndMinute(10,30)
                                     .inTimeZone(TimeZone.getTimeZone("GMT+6"))).build();
 
             log.info("Scheduling process time is :: {}", trigger.getKey());
