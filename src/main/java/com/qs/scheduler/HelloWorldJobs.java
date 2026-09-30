@@ -1,4 +1,4 @@
-package com.qs;
+package com.qs.scheduler;
 
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;

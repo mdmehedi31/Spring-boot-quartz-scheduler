@@ -1,4 +1,4 @@
-package com.qs;
+package com.qs.scheduler;
 
 import org.quartz.*;
 import org.slf4j.Logger;
@@ -19,6 +19,7 @@ public class SchedulerRunner {
         try{
             log.info("Hello World Scheduler starting");
             JobDataMap jobDataMap = new JobDataMap();
+
             JobDetail jobDetail = JobBuilder.newJob(HelloWorldJobs.class)
                     .withIdentity("testjobs","testgroup")
                     .storeDurably()
