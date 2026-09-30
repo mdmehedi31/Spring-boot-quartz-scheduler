@@ -15,10 +15,11 @@ public class SchedulerRunner {
     private Scheduler scheduler;
 
     private static final Logger log = LoggerFactory.getLogger(SchedulerRunner.class);
-    public void helloWorldScheduler() {
+    public void helloWorldScheduler(Integer campaignId) {
         try{
             log.info("Hello World Scheduler starting");
             JobDataMap jobDataMap = new JobDataMap();
+            jobDataMap.put("campaignId", String.valueOf(campaignId));
 
             JobDetail jobDetail = JobBuilder.newJob(HelloWorldJobs.class)
                     .withIdentity("testjobs","testgroup")
@@ -29,7 +30,7 @@ public class SchedulerRunner {
             Trigger trigger = TriggerBuilder.newTrigger().forJob(jobDetail).
                     withIdentity("triggerjobs")
                     .withSchedule(
-                            CronScheduleBuilder.dailyAtHourAndMinute(10,30)
+                            CronScheduleBuilder.dailyAtHourAndMinute(12,29)
                                     .inTimeZone(TimeZone.getTimeZone("GMT+6"))).build();
 
             log.info("Scheduling process time is :: {}", trigger.getKey());

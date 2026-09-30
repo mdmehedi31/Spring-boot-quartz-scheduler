@@ -16,14 +16,15 @@ public class SchedulerController {
 
     private CampaignEmailService campaignEmailService;
 
-    public SchedulerController(SchedulerRunner schedulerRunner) {
+    public SchedulerController(SchedulerRunner schedulerRunner, CampaignEmailService campaignEmailService) {
         this.schedulerRunner = schedulerRunner;
+        this.campaignEmailService = campaignEmailService;
     }
 
 
-    @GetMapping("")
-    public void runscheduler(){
-        schedulerRunner.helloWorldScheduler();
+    @GetMapping("/{campaignId}")
+    public void runscheduler(@PathVariable Integer campaignId) {
+        schedulerRunner.helloWorldScheduler(campaignId);
     }
 
 
