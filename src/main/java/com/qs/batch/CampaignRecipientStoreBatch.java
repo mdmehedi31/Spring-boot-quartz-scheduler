@@ -5,11 +5,14 @@ import ch.qos.logback.classic.Logger;
 import com.qs.dto.BatchTestDTO;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.Job;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.listener.StepExecutionListener;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.Step;
+import org.springframework.batch.core.step.StepExecution;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.infrastructure.item.ItemReader;
 import org.springframework.batch.infrastructure.item.ItemWriter;
@@ -21,38 +24,28 @@ import org.springframework.batch.infrastructure.item.file.builder.FlatFileItemRe
 import org.springframework.batch.infrastructure.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.infrastructure.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.infrastructure.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.infrastructure.item.support.ListItemReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 
 import javax.sql.DataSource;
+import java.time.LocalTime;
+import java.util.List;
 
 @Configuration
 public class CampaignRecipientStoreBatch {
-
 
     private static final Logger log = (Logger) LoggerFactory.getLogger(CampaignRecipientStoreBatch.class);
 
     @Bean
     @StepScope
-    public ItemReader<BatchTestDTO>
-    campaignDataReader(
+    public ItemReader<BatchTestDTO> campaignDataReader(
                        @Value("#{jobParameters['campaignId']}") String campaignId) {
-/*
-        return new FlatFileItemReaderBuilder<BatchTestDTO>()
-                .name("EmailCampRecipient_"+campaignId)
-                .targetType(BatchTestDTO.class)
-                .build();*/
-
-        return new ItemReader<BatchTestDTO>() {
-            @Override
-            public  BatchTestDTO read() throws Exception {
-                return new BatchTestDTO("Test campaign id is "+campaignId);
-            }
-        };
+        log.info("Reader :: campaignId: " + campaignId);
+        return new ListItemReader<>(List.of(new BatchTestDTO("Test campaign id is " + campaignId)));
     }
-
 
     @Bean
     @StepScope
@@ -71,7 +64,6 @@ public class CampaignRecipientStoreBatch {
         };
     }
 
-
     @Bean
     public Job job(JobRepository jobRepository, Step step, TempFileCleanListener tempFileCleanListener) {
 
@@ -81,12 +73,50 @@ public class CampaignRecipientStoreBatch {
     }
 
     @Bean
-    public Step step(JobRepository jobRepository, JdbcBatchItemWriter<BatchTestDTO> writer){
+    public Step step(JobRepository jobRepository,
+                     ItemReader<BatchTestDTO> reader,
+                     ItemWriter<BatchTestDTO> writer,
+                     CampaignRecipientStoreProcessor processor) {
+
         return new StepBuilder("emailRecipientCampStep",jobRepository)
                 .<BatchTestDTO,BatchTestDTO>chunk(1000)
-                .reader(campaignDataReader(null))
-                .processor(processor(null))
+                .reader(reader)
+                .processor(processor)
                 .writer(writer)
+                .listener(new StepExecutionListener() {
+                    @Override
+                    public @Nullable ExitStatus afterStep(StepExecution stepExecution) {
+                        String campaignId = stepExecution
+                                .getJobParameters()
+                                .getString("campaignId");
+
+                        log.info(
+                                "========== END ==========" +
+                                        " campaignId={} thread={} time={} status={}",
+                                campaignId,
+                                Thread.currentThread().getName(),
+                                LocalTime.now(),
+                                stepExecution.getStatus()
+                        );
+
+                        return stepExecution.getExitStatus();
+                    }
+
+                    @Override
+                    public void beforeStep(StepExecution stepExecution) {
+                        String campaignId = stepExecution
+                                .getJobParameters()
+                                .getString("campaignId");
+
+                        log.info(
+                                "========== START ==========" +
+                                        " campaignId={} thread={} time={}",
+                                campaignId,
+                                Thread.currentThread().getName(),
+                                LocalTime.now()
+                        );
+                    }
+                })
                 .build();
 
     }

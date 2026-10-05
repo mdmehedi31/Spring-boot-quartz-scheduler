@@ -18,21 +18,18 @@ public class SchedulerRunner {
     private Scheduler scheduler;
 
     private static final Logger log = LoggerFactory.getLogger(SchedulerRunner.class);
+
     public void helloWorldScheduler(Integer campaignId) {
-        try{
-            log.info("Hello World Scheduler starting");
+        try {
+            String jobKey = "campaign-job-" + campaignId;
+            String triggerKey = "campaign-trigger-" + campaignId;
+
             JobDataMap jobDataMap = new JobDataMap();
             jobDataMap.put("campaignId", String.valueOf(campaignId));
 
-            JobDetail jobDetail = JobBuilder.newJob(HelloWorldJobs.class)
-                    .withIdentity("testjobs"+campaignId,"testgroup")
-                    .storeDurably()
-                    .setJobData(jobDataMap)
-                    .build();
-
             LocalDateTime dateTime = LocalDateTime.of(
                     LocalDate.now(),
-                    LocalTime.of(21, 02)
+                    LocalTime.of(12, 18)
             );
             ZoneId zoneId = ZoneId.of("Asia/Dhaka");
 
@@ -40,20 +37,35 @@ public class SchedulerRunner {
                     .atZone(zoneId)
                     .toInstant();
 
-            Trigger trigger = TriggerBuilder.newTrigger().forJob(jobDetail).
-                    withIdentity("triggerjobs"+campaignId)
-                    .startAt(Date.from(instant)).build();
+            JobDetail jobDetail = JobBuilder
+                    .newJob(HelloWorldJobs.class)
+                    .withIdentity(jobKey, "campaign-group")
+                    .usingJobData(jobDataMap)
+                    .build();
 
-            log.info("Scheduling process time is :: {}", trigger.getKey());
+            Trigger trigger = TriggerBuilder
+                    .newTrigger()
+                    .withIdentity(triggerKey, "campaign-group")
+                    .forJob(jobDetail)
+                    .startAt(Date.from(instant))
+                    .build();
 
+            scheduler.scheduleJob(jobDetail, trigger);
 
-            scheduler.scheduleJob(jobDetail,trigger);
+            log.info(
+                    "Campaign scheduled | campaignId={} | job={} | trigger={} | fireTime={}",
+                    campaignId,
+                    jobDetail.getKey(),
+                    trigger.getKey(),
+                    trigger.getNextFireTime()
+            );
 
-            log.info("Current time       : {}", LocalDateTime.now());
-            log.info("Next fire time     : {}", trigger.getNextFireTime());
-            log.info("Trigger state      : {}", scheduler.getTriggerState(trigger.getKey()));
-        }catch(Exception e){
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error(
+                    "Failed to schedule campaign {}",
+                    campaignId,
+                    e
+            );
         }
     }
 
@@ -61,7 +73,7 @@ public class SchedulerRunner {
 
         Set<String> zoneIds = ZoneId.getAvailableZoneIds();
 
-        log.info("ZoneIds :: {}", zoneIds);
+
         return new ArrayList<>();
     }
 

@@ -32,6 +32,7 @@ public class BatchConfig {
         return jobOperator;
     }
 
+
     @Bean
     @Primary
     public JobRegistry jobRegistry() {
